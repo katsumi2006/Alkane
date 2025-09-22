@@ -2,15 +2,32 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 import numpy as np
 import pyvista as pv
+from chemicalconverters import NamesConverter
 
 c_color = "black"
 c_radius = 0.3
 h_color = "blue"
 h_radius = 0.2
+smiles=""
 
 #n = int(input("n: "))
 #smiles = "C"*n
-smiles = input("SMILES:")
+
+converter_to_IUPAC = NamesConverter(model_name="knowledgator/SMILES2IUPAC-canonical-base")
+converter_to_SMILES = NamesConverter(model_name="knowledgator/IUPAC2SMILES-canonical-base")
+
+choice = int(input("N (1), IUPAC (2), SMILES(3): "))
+
+if choice == 1:
+    n = int(input("n: "))
+    smiles = "C"*n
+    iupac_name = converter_to_IUPAC.smiles_to_iupac(smiles)
+elif choice == 2:
+    iupac_name = str(input("IUPAC Name:"))
+    smiles = converter_to_SMILES.iupac_to_smiles(iupac_name)[0]
+elif choice == 3:
+    smiles = str(input("SMILES: "))
+    iupac_name = converter_to_IUPAC.smiles_to_iupac(smiles)
 mol = Chem.MolFromSmiles(smiles)
 mol = Chem.AddHs(mol)
 AllChem.EmbedMolecule(mol, AllChem.ETKDG())
@@ -49,7 +66,7 @@ for bond in mol.GetBonds():
     a1 = idx_to_atom[bond.GetBeginAtomIdx()]
     a2 = idx_to_atom[bond.GetEndAtomIdx()]
     a1.add_bond(a2)
-    a2.add_bond(a1)  #both sides have the bond
+    a2.add_bond(a1)  
 
 plotter = pv.Plotter()
 for atom in atoms:
@@ -64,6 +81,17 @@ for atom in atoms:
             end = np.array(bonded_atom.position)
             line = pv.Line(start, end)
             plotter.add_mesh(line, color="grey", line_width=5)
+
+
+N = smiles.count("C")
+
+plotter.add_text(f"C{N}H{2*N+2}", font_size=12, position="upper_left")
+
+#converter = NamesConverter(model_name="knowledgator/SMILES2IUPAC-canonical-base")
+#iupac_name = converter.smiles_to_iupac(smiles)
+plotter.add_text(iupac_name[0], font_size=12, position="upper_right")
+
+
 
 
 plotter.show()
